@@ -54,7 +54,7 @@ class Download:
                                                     datashare_project,
                                                     cookies,
                                                     apikey)
-        except (ConnectionRefusedError, ConnectionError):
+        except ConnectionError:
             logger.critical('Unable to connect to Datashare', exc_info=self.traceback)
             exit()
 
@@ -102,11 +102,13 @@ class Download:
     def document_file_options(self, document):
         return {
             "id": document.get('_id'),
-            "id_2b": document.get('_id')[0:2],
+            "id_2b": document.get('_id')[:2],
             "id_4b": document.get('_id')[2:4],
             "project": self.datashare_project,
             "basename": basename(document.get('_source', {}).get("path", '')),
-            "parentDocument": document.get('_source', {}).get('parentDocument', None)
+            "parentDocument": document.get('_source', {}).get(
+                'parentDocument', None
+            ),
         }
 
     def raw_file_path(self, document, parents=True):
@@ -133,7 +135,7 @@ class Download:
     def log_matches(self):
         index = self.datashare_project
         count = self.count_matches()
-        logger.info('%s matching document(s) in %s' % (count, index))
+        logger.info(f'{count} matching document(s) in {index}')
         return count
 
     def scan_or_query_all(self):
@@ -141,10 +143,10 @@ class Download:
         source = ["path", "parentDocument", "type"] + str(self.source).split(',')
         sort = { self.sort_by: self.order_by }
         if self.scroll is None:
-            logger.info('Searching document(s) metadata in %s' % index)
+            logger.info(f'Searching document(s) metadata in {index}')
             return self.datashare_client.query_all(index=index, query=self.query_body, source=source, sort=sort)
         else:
-            logger.info('Scrolling over document(s) metadata in %s' % index)
+            logger.info(f'Scrolling over document(s) metadata in {index}')
             return self.datashare_client.scan_all(index=index, query=self.query_body, source=source, scroll=self.scroll, sort=sort)
 
     def download_raw_file(self, document):
@@ -155,11 +157,11 @@ class Download:
             return
         # Skip existing
         if self.once and self.raw_file_exists(document):
-            return logger.info('Skipping existing document %s' % document.get('_id'))
+            return logger.info(f"Skipping existing document {document.get('_id')}")
         # Skip non-downloadable file
         if document.get('_source', {}).get('type', None) != 'Document':
-            return logger.warning('Not a raw document. Skipping %s' % id)
-        logger.info('Downloading raw file %s' % id)
+            return logger.warning(f'Not a raw document. Skipping {id}')
+        logger.info(f'Downloading raw file {id}')
         document_file_stream = self.datashare_client.download(self.datashare_project, id, routing)
         document_file_stream.raw.decode_content = True
         document_file_stream.raise_for_status()
@@ -181,7 +183,7 @@ class Download:
 
     def start(self):
         count = self.log_matches()
-        desc = "Downloading %s document(s)" % count
+        desc = f"Downloading {count} document(s)"
         try:
             with Progress(disable=self.no_progressbar) as progress:  
                 task = progress.add_task(desc, total=count)
@@ -189,9 +191,13 @@ class Download:
                     try:
                         self.download_raw_file(document)
                         self.save_indexed_document(document)
-                        logger.info('Processed document %s' % document.get('_id'))
+                        logger.info(f"Processed document {document.get('_id')}")
                     except HTTPError:
-                        logger.error('Unable to download document %s' % document.get('_id'), exc_info=self.traceback)
+                        logger.error(
+                            f"Unable to download document {document.get('_id')}",
+                            exc_info=self.traceback,
+                        )
+
                     progress.advance(task)
                     self.sleep()
         except ProtocolError:

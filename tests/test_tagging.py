@@ -254,9 +254,9 @@ class TestTagging(TestAbstract):
             file.seek(0)
             with self.mock_tagging_endpoint() as resp:
                 cookies = r'_ds_session_id="{\"login\":\"\",\"roles\":[],\"sessionId\":' \
-                          r'\"dq18s0kj08dq10skLYGSu8SFVsg\",\"redirectAfterLogin\":\"/\"}"'
+                              r'\"dq18s0kj08dq10skLYGSu8SFVsg\",\"redirectAfterLogin\":\"/\"}"'
                 cookies_not_escaped = '_ds_session_id={"login":"","roles":[],"sessionId":' \
-                                      '"dq18s0kj08dq10skLYGSu8SFVsg","redirectAfterLogin":"/"}'
+                                          '"dq18s0kj08dq10skLYGSu8SFVsg","redirectAfterLogin":"/"}'
                 runner = CliRunner()
                 runner.invoke(cli, ['tagging', '--datashare-url', self.datashare_url, '--datashare-project',
                                     self.datashare_project, '--cookies', cookies, file.name])

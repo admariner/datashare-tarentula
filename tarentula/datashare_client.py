@@ -37,7 +37,7 @@ class DatashareClient:
         if self.apikey is None:
             return None
         else:
-            return {'Authorization': 'bearer %s' % self.apikey}
+            return {'Authorization': f'bearer {self.apikey}'}
 
     @property
     def elasticsearch_host(self):
@@ -65,19 +65,15 @@ class DatashareClient:
         # When no id is provided, we use POST method (to create the resource)
         if 'content' in document:
             content_length = len(document.get('content', ''))
-            document.update({'contentLength': content_length})
+            document['contentLength'] = content_length
         now = datetime.now()
         extraction_date = now.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
-        document.update({'extractionDate': extraction_date})
+        document['extractionDate'] = extraction_date
         if id is None:
             url = urljoin(self.elasticsearch_url, index, '/_doc?refresh')
             result = requests.post(url, json=document, params=params)
-        # When an id is provided, we use PUT method (to update the resource)
         else:
-            if routing is None:
-                query_params = '?refresh'
-            else:
-                query_params = '?refresh&routing=' + routing
+            query_params = '?refresh' if routing is None else f'?refresh&routing={routing}'
             url = urljoin(self.elasticsearch_url, index, '/_doc/', id, query_params)
             result = requests.put(url, json=document, params=params)
         result.raise_for_status()
@@ -104,14 +100,14 @@ class DatashareClient:
     def reindex(self, source=DATASHARE_DEFAULT_PROJECT, dest=None, size=1):
         # Create a default destination index name
         if dest is None:
-            dest = '%s-copy-%s' % (source, uuid4().hex[:6])
+            dest = f'{source}-copy-{uuid4().hex[:6]}'
         # Source index must at least have one document
         document_id = self.index(source, document={"content": "This is a temporary document", "tags": ["tmp"]})
         # Copy everything
         json = {"source": {"index": source}, "dest": {"index": dest}, "size": size}
         # Send the request to elasticsearch
         url = urljoin(self.elasticsearch_url, '_reindex')
-        result = requests.post(url + '?refresh', json=json)
+        result = requests.post(f'{url}?refresh', json=json)
         # Delete the dummy docs
         self.delete(source, document_id)
         self.delete(dest, document_id)
@@ -122,7 +118,7 @@ class DatashareClient:
     def query(self, index=DATASHARE_DEFAULT_PROJECT, query={}, q=None, source=None, scroll=None, **kwargs):
         local_query = {"sort": {"_id": "asc"}, **query, **kwargs}
         if source is not None:
-            local_query.update({'_source': source})
+            local_query['_source'] = source
         url = urljoin(self.elasticsearch_host, index, '/_search')
         response = requests.post(url, params={"q": q, "scroll": scroll},
                                  json=local_query,
@@ -143,8 +139,7 @@ class DatashareClient:
     def scan_all(self, scroll='10m', **kwargs):
         response = self.query(scroll=scroll, **kwargs)
         while len(response['hits']['hits']) > 0:
-            for item in response['hits']['hits']:
-                yield item
+            yield from response['hits']['hits']
             if '_scroll_id' not in response:
                 break
             scroll_id = response['_scroll_id']
@@ -153,8 +148,7 @@ class DatashareClient:
     def query_all(self, **kwargs):
         response = self.query(**kwargs)
         while len(response['hits']['hits']) > 0:
-            for item in response['hits']['hits']:
-                yield item
+            yield from response['hits']['hits']
             search_after = response['hits']['hits'][-1]['sort']
             response = self.query(search_after=search_after, **kwargs)
 

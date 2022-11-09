@@ -17,7 +17,7 @@ class GraphRealTime:
         else:
             self.query = json.loads(query)
         self.field = field
-        self.elasticsearch_endpoint = '%s/%s/_search?size=0' % (elasticsearch_url, index)
+        self.elasticsearch_endpoint = f'{elasticsearch_url}/{index}/_search?size=0'
         self.refresh_interval = refresh_interval
         self.xs = [] if xs_param is None else xs_param
         self.ys = [] if xs_param is None else ys_param
@@ -42,7 +42,7 @@ class GraphRealTime:
         self.ax.plot(self.xs, self.ys)
 
         plt.xticks(rotation=45, ha='right')
-        plt.title("Dynamic Plot of %s" % self.field)
+        plt.title(f"Dynamic Plot of {self.field}")
         plt.xlabel("Time")
         plt.ylabel(self.field)
 

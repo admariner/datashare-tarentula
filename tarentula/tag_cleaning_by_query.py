@@ -39,9 +39,7 @@ class TagsCleanerByQuery:
     @property
     def headers(self):
         if self.apikey is not None:
-            return {
-                'Authorization': 'bearer %s' % self.apikey
-            }
+            return {'Authorization': f'bearer {self.apikey}'}
 
     @property
     def tagging_by_query_endpoint(self):
@@ -59,7 +57,7 @@ class TagsCleanerByQuery:
                                 headers=self.headers)
         result.raise_for_status()
         if self.wait_for_completion:
-            logger.info('updated %s documents' % result.json()['updated'])
+            logger.info(f"updated {result.json()['updated']} documents")
         else:
-            logger.info('task created: [%s]' % result.json()['task'])
+            logger.info(f"task created: [{result.json()['task']}]")
         return result

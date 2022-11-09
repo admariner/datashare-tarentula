@@ -9,7 +9,7 @@ class TestVersion(TestAbstract):
     def test_version(self):
         runner = CliRunner()
         result = runner.invoke(cli, ['--version'])
-        self.assertIn('v%s' % __version__, result.output)
+        self.assertIn(f'v{__version__}', result.output)
 
     def test_version_help(self):
         runner = CliRunner()

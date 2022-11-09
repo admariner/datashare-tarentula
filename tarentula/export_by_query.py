@@ -53,7 +53,7 @@ class ExportByQuery:
                                                     datashare_project,
                                                     cookies,
                                                     apikey)
-        except (ConnectionRefusedError, ConnectionError):
+        except ConnectionError:
             logger.critical('Unable to connect to Datashare', exc_info=self.traceback)
             exit()
 
@@ -134,7 +134,7 @@ class ExportByQuery:
     def log_matches(self):
         index = self.datashare_project
         count = self.count_matches()
-        logger.info('%s matching document(s) in %s' % (count, index))
+        logger.info(f'{count} matching document(s) in {index}')
         return count
 
     def scan_or_query_all(self):
@@ -142,10 +142,10 @@ class ExportByQuery:
         source = self.source_fields_names
         sort = { self.sort_by: self.order_by }
         if self.scroll is None:
-            logger.info('Searching document(s) metadata in %s' % index)
+            logger.info(f'Searching document(s) metadata in {index}')
             return self.datashare_client.query_all(index=index, query=self.query_body, source=source, size=self.size, sort=sort)
         else:
-            logger.info('Scrolling over document(s) metadata in %s' % index)
+            logger.info(f'Scrolling over document(s) metadata in {index}')
             return self.datashare_client.scan_all(index=index, query=self.query_body, source=source, scroll=self.scroll, size=self.size, sort=sort)
 
     def document_default_values(self, document, number):
@@ -183,21 +183,24 @@ class ExportByQuery:
 
     def start(self):
         count = self.log_matches()
-        desc = 'Exporting %s document(s)' % count
+        desc = f'Exporting {count} document(s)'
         try:
             with Progress(disable=self.no_progressbar) as progress:  
-                task = progress.add_task(desc, total=count) 
+                task = progress.add_task(desc, total=count)
                 documents = self.scan_or_query_all()
                 with self.create_csv_file() as csvwriter:
                     for index, document in enumerate(documents):
                         try:
                             self.save_indexed_document(csvwriter, document, index)
-                            logger.info('Saved document %s' % document.get('_id', None))
+                            logger.info(f"Saved document {document.get('_id', None)}")
                         except HTTPError:
-                            logger.error('Unable to export document %s' % document.get('_id', None),
-                                exc_info=self.traceback)
+                            logger.error(
+                                f"Unable to export document {document.get('_id', None)}",
+                                exc_info=self.traceback,
+                            )
+
                         progress.advance(task)
                         self.sleep()
-                logger.info('Written documents metadata in %s' % self.output_file)
+                logger.info(f'Written documents metadata in {self.output_file}')
         except ProtocolError:
             logger.error('Exception while exporting documents', exc_info=self.traceback)

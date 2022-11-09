@@ -7,44 +7,51 @@ from .test_abstract import TestAbstract
 class TestDatashareClient(TestAbstract):
 
     def test_default_index_creation(self):
-        self.assertEqual(requests.get('%s/%s' % (self.elasticsearch_url, self.datashare_project)).status_code,
-                         requests.codes.ok)
-        self.assertNotEqual(requests.get('%s/%s' % (self.elasticsearch_url, 'unknown-index')).status_code,
-                            requests.codes.ok)
+        self.assertEqual(
+            requests.get(
+                f'{self.elasticsearch_url}/{self.datashare_project}'
+            ).status_code,
+            requests.codes.ok,
+        )
+
+        self.assertNotEqual(
+            requests.get(f'{self.elasticsearch_url}/unknown-index').status_code,
+            requests.codes.ok,
+        )
 
     def test_temporary_project_creation(self):
         with self.datashare_client.temporary_project(self.datashare_project) as project:
-            result = requests.get('%s/%s' % (self.elasticsearch_url, project))
+            result = requests.get(f'{self.elasticsearch_url}/{project}')
             self.assertEqual(result.status_code, requests.codes.ok)
 
     def test_temporary_project_deletion(self):
         project = self.datashare_client.temporary_project(self.datashare_project)
         self.datashare_client.refresh()
-        result = requests.get('%s/%s' % (self.elasticsearch_url, project))
+        result = requests.get(f'{self.elasticsearch_url}/{project}')
         self.assertNotEqual(result.status_code, requests.codes.ok)
 
     def test_document_creation(self):
         with self.datashare_client.temporary_project(self.datashare_project) as project:
             id = self.datashare_client.index(index=project, document={'foo': 'bar'}, id=str(uuid.uuid4()))
-            result = requests.get('%s/%s/_doc/%s' % (self.elasticsearch_url, project, id))
+            result = requests.get(f'{self.elasticsearch_url}/{project}/_doc/{id}')
             self.assertEqual(result.status_code, requests.codes.ok)
             self.assertEqual(result.json().get('_source', {}).get('foo'), 'bar')
 
     def test_document_deletion(self):
         with self.datashare_client.temporary_project(self.datashare_project) as project:
             self.datashare_client.index(index=project, document={'foo': 'bar'}, id='to-delete')
-            result = requests.get('%s/%s/_doc/%s' % (self.elasticsearch_url, project, 'to-delete'))
+            result = requests.get(f'{self.elasticsearch_url}/{project}/_doc/to-delete')
             self.assertTrue(result.json().get('found'))
             self.datashare_client.delete(index=project, id='to-delete')
-            result = requests.get('%s/%s/_doc/%s' % (self.elasticsearch_url, project, 'to-delete'))
+            result = requests.get(f'{self.elasticsearch_url}/{project}/_doc/to-delete')
             self.assertFalse(result.json().get('found'))
 
     def test_index_deletion(self):
         with self.datashare_client.temporary_project(self.datashare_project) as project:
-            result = requests.get('%s/%s' % (self.elasticsearch_url, project))
+            result = requests.get(f'{self.elasticsearch_url}/{project}')
             self.assertEqual(result.status_code, requests.codes.ok)
             self.datashare_client.delete_index(project)
-            result = requests.get('%s/%s' % (self.elasticsearch_url, project))
+            result = requests.get(f'{self.elasticsearch_url}/{project}')
             self.assertNotEqual(result.status_code, requests.codes.ok)
 
     def test_query_with_two_docs(self):
@@ -106,7 +113,7 @@ class TestDatashareClient(TestAbstract):
             self.datashare_client.index(index=project, document={'name': 'Dipluridae'}, id=str(uuid.uuid4()))
 
             count = 0
-            for document in self.datashare_client.query_all(index=project, q='name:*', size=2):
+            for _ in self.datashare_client.query_all(index=project, q='name:*', size=2):
                 count = count + 1
             self.assertEqual(count, 9)
 
@@ -121,6 +128,6 @@ class TestDatashareClient(TestAbstract):
             self.datashare_client.index(index=project, document={'name': 'Ctenizidae'}, id=str(uuid.uuid4()))
 
             count = 0
-            for document in self.datashare_client.scan_all(index=project, q='name:*', size=2):
+            for _ in self.datashare_client.scan_all(index=project, q='name:*', size=2):
                 count = count + 1
             self.assertEqual(count, 7)
