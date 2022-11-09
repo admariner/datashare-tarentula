@@ -88,9 +88,19 @@ class TestApikey(TestAbstract):
             file.seek(0)
             with self.mock_tagging_by_query_endpoint() as resp:
                 runner = CliRunner()
-                runner.invoke(cli, ['clean-tags-by-query', '--elasticsearch-url', self.elasticsearch_url,
-                                    '--datashare-project', self.datashare_project, '--query',
-                                    '@' + file.name])
+                runner.invoke(
+                    cli,
+                    [
+                        'clean-tags-by-query',
+                        '--elasticsearch-url',
+                        self.elasticsearch_url,
+                        '--datashare-project',
+                        self.datashare_project,
+                        '--query',
+                        f'@{file.name}',
+                    ],
+                )
+
                 self.assertIsNone(resp.calls[0].request.headers.get('Authorization'))
 
     def test_apikey_header_is_sent_while_tag_cleaning_by_query_with_cli(self):

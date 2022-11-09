@@ -14,9 +14,7 @@ from tarentula import __version__
 
 def validate_loglevel(ctx, param, value):
     try:
-        if isinstance(value, str):
-            return getattr(logging, value)
-        return int(value)
+        return getattr(logging, value) if isinstance(value, str) else int(value)
     except (AttributeError, ValueError):
         raise click.BadParameter('must be a valid log level (CRITICAL, ERROR, WARNING, INFO, DEBUG or NOTSET)')
 

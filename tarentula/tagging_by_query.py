@@ -48,15 +48,12 @@ class TaggerByQuery:
     @property
     def headers(self):
         if self.apikey is not None:
-            return {
-                'Authorization': 'bearer %s' % self.apikey
-            }
+            return {'Authorization': f'bearer {self.apikey}'}
 
     @property
     def tags(self):
-        json_file = open(self.json_path, 'r')
-        tags = json.loads(json_file.read())
-        json_file.close()
+        with open(self.json_path, 'r') as json_file:
+            tags = json.loads(json_file.read())
         return tags
 
     @property
@@ -118,7 +115,7 @@ class TaggerByQuery:
 
     def start(self):
         count = self.tags_count
-        desc = "This action will add %s tag(s)" % count
+        desc = f"This action will add {count} tag(s)"
         with Progress(disable=self.no_progressbar) as progress:  
             task = progress.add_task(desc, total=count)
             for (tag, query) in self.tags.items():
@@ -126,12 +123,15 @@ class TaggerByQuery:
                     progress.console.print('Adding "%s" tag' % tag)
                     result = self.tag_documents(tag, query).json()
                     if self.wait_for_completion:
-                        progress.console.print('└── documents updated in %sms' % result['took'])
-                        logger.info('Documents tagged with [%s] in %sms' % (tag, result['took']))
+                        progress.console.print(f"└── documents updated in {result['took']}ms")
+                        logger.info(f"Documents tagged with [{tag}] in {result['took']}ms")
                     else:
-                        progress.console.print('└── task created: %s' % self.task_url(result['task']))
-                        logger.info('Task [%s] created for tag [%s]' % (result['task'], tag))
+                        progress.console.print(f"└── task created: {self.task_url(result['task'])}")
+                        logger.info(f"Task [{result['task']}] created for tag [{tag}]")
                     progress.advance(task)
                     self.sleep()
                 except (HTTPError, ConnectionError):
-                    logger.error('Unable to add tag [%s] (connection error)' % tag, exc_info=self.traceback)
+                    logger.error(
+                        f'Unable to add tag [{tag}] (connection error)',
+                        exc_info=self.traceback,
+                    )

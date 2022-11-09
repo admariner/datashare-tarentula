@@ -52,9 +52,19 @@ class TestTagsCleanerByQuery(TestAbstract):
             file.flush()
             file.seek(0)
             runner = CliRunner()
-            result = runner.invoke(cli, ['clean-tags-by-query', '--datashare-project', self.datashare_project,
-                                         '--elasticsearch-url', self.elasticsearch_url, '--query',
-                                         '@' + file.name])
+            result = runner.invoke(
+                cli,
+                [
+                    'clean-tags-by-query',
+                    '--datashare-project',
+                    self.datashare_project,
+                    '--elasticsearch-url',
+                    self.elasticsearch_url,
+                    '--query',
+                    f'@{file.name}',
+                ],
+            )
+
             self.assertIn('updated 1 documents', result.output)
 
     def test_clean_tags(self):

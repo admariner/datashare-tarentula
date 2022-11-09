@@ -27,7 +27,7 @@ class Count:
                                                     datashare_project,
                                                     cookies,
                                                     apikey)
-        except (ConnectionRefusedError, ConnectionError):
+        except ConnectionError:
             logger.critical('Unable to connect to Datashare', exc_info=self.traceback)
             exit()
 
@@ -72,10 +72,10 @@ class Count:
     def log_matches(self):
         index = self.datashare_project
         count = self.count_matches()
-        logger.info('%s matching document(s) in %s' % (count, index))
+        logger.info(f'{count} matching document(s) in {index}')
         return count
 
     def start(self):
         count = self.log_matches()
-        logger.info('Number of matched elements: %s' % count)
-        print('Number of matched elements: %s' % count)
+        logger.info(f'Number of matched elements: {count}')
+        print(f'Number of matched elements: {count}')

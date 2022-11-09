@@ -37,7 +37,7 @@ class Tagger:
     @property
     def csv_rows(self):
         with open(self.csv_path, newline='', encoding='utf-8-sig') as csv_file:
-            return list(self.sanitize_row(row) for row in csv.DictReader(csv_file))
+            return [self.sanitize_row(row) for row in csv.DictReader(csv_file)]
 
     @property
     def tags(self):
@@ -49,14 +49,17 @@ class Tagger:
 
     @property
     def tree(self):
-        tree = dict()
+        tree = {}
         for row in self.csv_rows:
             # Extract row values
             tag, document_id, routing = (row['tag'], row['documentId'],
                                          row.get('routing', row['documentId']) or row['documentId'],)
             # Append to an existing dictionary or create one
-            tree[document_id] = tree[document_id] if document_id in tree else dict(tags=set(), routing=routing,
-                                                                                   document_id=document_id)
+            tree[document_id] = tree.get(
+                document_id,
+                dict(tags=set(), routing=routing, document_id=document_id),
+            )
+
             # Tags are added to a set so they are unique
             tree[document_id]['tags'].add(tag)
         return tree
@@ -73,9 +76,7 @@ class Tagger:
     @property
     def headers(self):
         if self.apikey is not None:
-            return {
-                'Authorization': 'bearer %s' % self.apikey
-            }
+            return {'Authorization': f'bearer {self.apikey}'}
 
     @property
     def total_steps(self):
@@ -103,7 +104,7 @@ class Tagger:
         )
 
     def summarize(self):
-        summary = 'Adding %s tags to %s documents' % (len(self.tags), len(self.documentIds))
+        summary = f'Adding {len(self.tags)} tags to {len(self.documentIds)} documents'
         logger.info(summary)
         return summary
 
